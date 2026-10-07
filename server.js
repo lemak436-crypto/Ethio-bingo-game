@@ -8,7 +8,7 @@ app.use(express.static('public'));
 
 const PORT = process.env.PORT || 3000;
 const TOKEN = process.env.TELEGRAM_TOKEN;
-const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID; // የእርስዎ የቴሌግራም ID ቁጥር ከሬንደር ይነበባል
+const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID; // የእርስዎ የቴሌግራም ID ከሬንደር ይነበባል
 
 // የእርስዎ ትክክለኛ የክፍያ መቀበያ መረጃዎች (ሙሉ በሙሉ ኮዱ ውስጥ ተካተዋል)
 const TELEBIRR_ACCOUNT = "0944123180";
@@ -18,18 +18,20 @@ const CBE_NAME = "Enyachew Amerga";
 
 const bot = new TelegramBot(TOKEN, { polling: true });
 
-// የተጫዋቾች ሂሳብ እና የትራንዛክሽን መመዝገቢያ ማህደር
 let userBalances = {}; 
 let usedTransactions = new Set(); 
 
+// ዋናው ሜኑ (የአራዳ ቢንጎ ቀጥታ ኮፒ በቋሚ በተን)
 function sendMainMenu(chatId) {
     bot.sendMessage(chatId, "🎯 **እንኳን ወደ ኢትዮ ቢንጎ ጌም በሰላም መጡ!** \n\nከታች ያሉትን አማራጮች በመጠቀም አካውንትዎን ያስተዳድሩ።", {
         parse_mode: "Markdown",
         reply_markup: {
             keyboard: [
-                [{ text: "🚀 ጨዋታውን ጀምር (Play)" }],
-                [{ text: "💰 ገንዘብ አስገባ (Deposit)" }, { text: "💸 ብር አውጣ (Withdraw)" }],
-                [{ text: "📊 የእኔ ሂሳብ (Balance)" }]
+                [{ text: "🎮 Play" }],
+                [{ text: "💰 Deposit" }, { text: "🏪 Withdraw" }],
+                [{ text: "💳 Check Balance" }],
+                [{ text: "👥 Invite" }, { text: "📘 How To Play" }],
+                [{ text: "☎️ Contact Us" }, { text: "👥 Join Us" }]
             ],
             resize_keyboard: true
         }
@@ -46,33 +48,19 @@ bot.on('message', (msg) => {
     const text = msg.text;
     if (!userBalances[chatId]) userBalances[chatId] = 0;
 
-    if (text === "💰 ገንዘብ አስገባ (Deposit)") {
-        bot.sendMessage(chatId, "💸 እባክዎ የክፍያ መንገድ ይምረጡ፦", {
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: "📱 በቴሌብር (Telebirr)", callback_data: "dep_telebirr" }],
-                    [{ text: "🏦 በንግድ ባንክ (CBE)", callback_data: "dep_cbe" }]
-                ]
-            }
-        });
+    if (text === "💰 Deposit") {
+        bot.sendMessage(chatId, `📖 **መመሪያ**\n\n1. በመጀመሪያ ወደዚህ የቴሌብር ቁጥር የፈለጉትን የብር መጠን ያስገቡ፦ \`\${TELEBIRR_ACCOUNT}\`\nስም፦ **\${TELEBIRR_NAME}**\n\n2. ብሩን ሲልኩ ከቴሌብር የደረሰዎትን አጭር የጽሁፍ መልዕክት (sms) ሙሉ በሙሉ ኮፒ (copy) በማድረግ እዚህ ላይ ይላኩት።\n\n3. ሲስተሙ መልዕክቱን አንብቦ በራስ-ሰር ብሩን ያስገባልዎታል።`);
     }
-    else if (text === "💸 ብር አውጣ (Withdraw)") {
+    else if (text === "🏪 Withdraw") {
         if (userBalances[chatId] <= 0) {
             return bot.sendMessage(chatId, "⚠️ ይቅርታ፣ ማውጣት የሚችሉት ሂሳብ የለዎትም።");
         }
-        bot.sendMessage(chatId, "🏦 የት ላይ መላክ አለበት? ይምረጡ፦", {
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: "📱 በቴሌብር ማውጫ", callback_data: "with_telebirr" }],
-                    [{ text: "🏦 በንግድ ባንክ ማውጫ", callback_data: "with_cbe" }]
-                ]
-            }
-        });
+        bot.sendMessage(chatId, "💸 እባክዎ ማውጣት የሚፈልጉትን የብር መጠን እና የባንክ አካውንትዎን በዚህ መልክ ይጻፉ፦\n\n`Withdraw [የብር መጠን] [ባንክ ስም] [አካውንት ቁጥር]`");
     }
-    else if (text === "📊 የእኔ ሂሳብ (Balance)") {
-        bot.sendMessage(chatId, `💰 **የአሁኑ የሂሳብዎ መጠን፦ ${userBalances[chatId].toFixed(2)} ETB**`, { parse_mode: "Markdown" });
+    else if (text === "💳 Check Balance") {
+        bot.sendMessage(chatId, `💰 **የአሁኑ የሂሳብዎ መጠን፦ \${userBalances[chatId].toFixed(2)} ETB**`, { parse_mode: "Markdown" });
     }
-    else if (text === "🚀 ጨዋታውን ጀምር (Play)") {
+    else if (text === "🎮 Play") {
         bot.sendMessage(chatId, "🎮 ጨዋታውን ለመጀመር ከታች ያለውን ቁልፍ ይጫኑ፦", {
             reply_markup: {
                 inline_keyboard: [[
@@ -81,21 +69,33 @@ bot.on('message', (msg) => {
             }
         });
     }
-    // ተጫዋቹ የባንክ ትራንዛክሽን ፅሁፍ (Txn ID) በቀጥታ ሲልክ
-    else if (text && (text.toUpperCase().startsWith("FT") || text.toUpperCase().startsWith("R") || text.toUpperCase().startsWith("N"))) {
-        const txnId = text.trim().toUpperCase();
+    // 📱 ከቴሌብር የመጣን ሙሉ የኤስኤምኤስ (SMS) ጽሑፍ በራስ-ሰር የማንበብ ሎጅክ
+    else if (text && (text.includes("Telebirr") || text.includes("transferred") || text.includes("የቴሌብር") || text.includes("Transaction"))) {
+        // የትራንዛክሽን ቁጥሩን (Txn ID) ከጽሑፉ ውስጥ ፈልጎ ማውጫ (Regex)
+        const txnMatch = text.match(/\b([A-Z0-9]{10,12})\b/);
+        // የብር መጠኑን ከጽሑፉ ውስጥ ፈልጎ ማውጫ
+        const amountMatch = text.match(/(?:ETB|ብር)\s*([\d.]+)/i) || text.match(/([\d.]+)\s*(?:ETB|ብር)/i);
+
+        if (!txnMatch) {
+            return bot.sendMessage(chatId, "❌ ይቅርታ፣ የላኩት የኤስኤምኤስ ጽሑፍ ትክክለኛውን የትራንዛክሽን ቁጥር መያዙን ማረጋገጥ አልተቻለም። እባክዎ ሙሉውን ኮፒ አድርገው ይላኩ።");
+        }
+
+        const txnId = txnMatch[1];
+        let amount = amountMatch ? parseFloat(amountMatch[1]) : 50; // ካልተገኘ መሠረታዊ 50 ብር ይወስዳል
+
         if (usedTransactions.has(txnId)) {
             return bot.sendMessage(chatId, "❌ ይህ የትራንዛክሽን ቁጥር ቀደም ብሎ ጥቅም ላይ ውሏል!");
         }
+
         usedTransactions.add(txnId);
-        bot.sendMessage(chatId, "🔄 ትራንዛክሽኑ እየተመረመረ ነው... እባክዎ የአድሚኑን ማረጋገጫ ይጠብቁ።");
+        bot.sendMessage(chatId, `🔄 የትራንዛክሽን ቁጥር \`\${txnId}\` እየተመረመረ ነው... እባክዎ የአድሚኑን ማረጋገጫ ይጠብቁ።`, { parse_mode: "Markdown" });
         
-        // ለአድሚኑ (ለእርስዎ) ማረጋገጫ መልዕክት ይልካል
-        bot.sendMessage(ADMIN_CHAT_ID, `📥 **አዲስ የዲፖዚት ጥያቄ**\n\n ተጫዋች ቴሌግራም ID: \`\${chatId}\`\n የላከው Txn ID: \`\${txnId}\`\n\nእባክዎ ባንክዎን አይተው ብሩ መግባቱን ካረጋገጡ በኋላ ያጽድቁ።`, {
+        // ለእርስዎ (ለአድሚኑ) የማረጋገጫ ቁልፍ ይልካል
+        bot.sendMessage(ADMIN_CHAT_ID, `📥 **አውቶማቲክ የዲፖዚት ጥያቄ**\n\n👤 ተጫዋች ID: \`\${chatId}\`\n🔍 የተነበበ Txn ID: \`\${txnId}\`\n💰 የተነበበ የብር መጠን: \`\${amount} ETB\`\n\nእባክዎ ብሩ መግባቱን ካረጋገጡ በኋላ ያጽድቁ።`, {
+            parse_mode: "Markdown",
             reply_markup: {
                 inline_keyboard: [
-                    [{ text: "✅ 50 ብር አውርድለት", callback_data: `approve_dep_\${chatId}_50_\${txnId}` }],
-                    [{ text: "✅ 100 ብር አውርድለት", callback_data: `approve_dep_\${chatId}_100_\${txnId}` }],
+                    [{ text: `✅ \${amount} ብር አውርድለት`, callback_data: `approve_dep_\${chatId}_\${amount}_\${txnId}` }],
                     [{ text: "❌ ውድቅ አድርግ (Reject)", callback_data: `reject_dep_\${chatId}` }]
                 ]
             }
@@ -105,16 +105,9 @@ bot.on('message', (msg) => {
 
 bot.on('callback_query', (callbackQuery) => {
     const msg = callbackQuery.message;
-    const chatId = msg.chat.id;
     const data = callbackQuery.data;
 
-    if (data === "dep_telebirr") {
-        bot.sendMessage(chatId, `📱 **በቴሌብር ገንዘብ ማስገቢያ**\n\n1. ወደዚህ የቴሌብር ቁጥር ብር ያስተላልፉ፦ \`\${TELEBIRR_ACCOUNT}\`\n2. ስም፦ **\${TELEBIRR_NAME}**\n\n3. ብር ካስተላለፉ በኋላ ከቴሌብር የደረሰዎትን የትራንዛክሽን ቁጥር (Txn ID) ለምሳሌ (\`R12345...\`) ቀጥታ እዚህ ቦቱ ላይ በጽሑፍ ብቻ ይላኩት። ቦቱ መርምሮ ያሳውቀናል።`);
-    }
-    else if (data === "dep_cbe") {
-        bot.sendMessage(chatId, `🏦 **በባንክ ገንዘብ ማስገቢያ**\n\n1. ወደዚህ የንግድ ባንክ አካውንት ብር ያስተላልፉ፦ \`\${CBE_ACCOUNT}\`\n2. ስም፦ **\${CBE_NAME}**\n\n3. ብር ካስተላለፉ በኋላ ከባንክ የደረሰዎትን የትራንዛክሽን ቁጥር (Txn ID) ለምሳሌ (\`FT1234...\`) ቀጥታ እዚህ ቦቱ ላይ በጽሑፍ ብቻ ይላኩት።`);
-    }
-    else if (data.startsWith("approve_dep_")) {
+    if (data.startsWith("approve_dep_")) {
         const [,, targetChatId, amount, txn] = data.split("_");
         userBalances[targetChatId] = (userBalances[targetChatId] || 0) + parseFloat(amount);
         bot.sendMessage(targetChatId, `✅ **የዲፖዚት ጥያቄዎ ጸድቋል!**\n\n💰 \`\${amount} ETB\` ወደ አካውንትዎ ገቢ ሆኗል። አሁን መጫወት ይችላሉ!`, { parse_mode: "Markdown" });
@@ -122,14 +115,11 @@ bot.on('callback_query', (callbackQuery) => {
         bot.answerCallbackQuery(callbackQuery.id);
     }
     else if (data.startsWith("reject_dep_")) {
-        const targetChatId = data.split("_");
-        bot.sendMessage(targetChatId, `❌ ይቅርታ፣ የላኩት ትራንዛክሽን በአድሚኑ ውድቅ ተደርጓል። እባክዎ ትክክለኛውን ቁጥር መላክዎን ያረጋግጡ።`);
+        const targetChatId = data.split("_")[2];
+        bot.sendMessage(targetChatId, `❌ ይቅርታ፣ የላኩት የኤስኤምኤስ ጽሑፍ መረጃ በአድሚኑ ውድቅ ተደርጓል። እባክዎ ትክክለኛውን መልዕክት መላክዎን ያረጋግጡ።`);
         bot.sendMessage(ADMIN_CHAT_ID, `🔴 የዲፖዚት ጥያቄውን ውድቅ አድርገዋል።`);
         bot.answerCallbackQuery(callbackQuery.id);
     }
-    else if (data === "with_telebirr" || data === "with_cbe") {
-        bot.sendMessage(chatId, "💸 እባክዎ ማውጣት የሚፈልጉትን የብር መጠን ብቻ በቁጥር ይጻፉ (ለምሳሌ፦ `100`)።");
-    }
 });
 
-app.listen(PORT, () => console.log(`Arada Style Bingo Server Running`));
+app.listen(PORT, () => console.log(`Arada SMS Style Bingo Server Running`));
