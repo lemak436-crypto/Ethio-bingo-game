@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ኢትዮ ቢንጎ ጌም - Ethio Bingo</title>
+    <!-- Socket.io ማገናኛ ላይብረሪ (ከሬንደር ሰርቨር ጋር በሪል-ታይም ለመነጋገር) -->
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #0b132b;
+            color: #ffffff;
+            text-align: center;
+            margin: 0;
+            padding: 10px;
+        }
+        /* ሎቢ (የክፍሎች ማሳያ ገጽ) */
+        .lobby-container { display: block; }
+        .game-container { display: none; }
+        
+        .header-panel {
+            background-color: #1c2541;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .room-card {
+            background: linear-gradient(135deg, #1c2541, #3a506b);
+            margin: 12px auto;
+            padding: 15px;
+            border-radius: 12px;
+            max-width: 400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid #5bc0be;
+        }
+        .room-details { text-align: left; }
+        .room-details div { margin: 3px 0; }
+        .stake-tag { font-size: 18px; font-weight: bold; color: #f1c40f; }
+        .timer-tag { color: #e74c3c; font-weight: bold; }
+        
+        .play-btn {
+            background-color: #009b4c;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .play-btn.closed { background-color: #7f8c8d; cursor: not-allowed; }
+
+        /* የቢንጎ ጨዋታ ሰሌዳ */
+        .bingo-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            max-width: 360px;
+            margin: 15px auto;
+            background-color: #1c2541;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .cell {
+            background-color: #3a506b;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .cell.marked { background-color: #de1c24; color: white; }
+        .current-call {
+            font-size: 55px;
+            color: #f1c40f;
+            font-weight: bold;
+            margin: 10px 0;
+            background-color: #1c2541;
+            display: inline-block;
+            padding: 5px 30px;
+            border-radius: 50px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 🎰 የአራዳ ቢንጎ ስታይል ሎቢ (የክፍሎች ገጽ) -->
+    <div id="lobby" class="lobby-container">
+        <div class="header-panel">
+            <span>🎫 ሂሳብ፦ <strong style="color:#009b4c;">59 ETB</strong></span>
+            <button class="play-btn" style="padding:5px 15px; font-size:12px;" onclick="location.reload()">Refresh</button>
+        </div>
+        
+        <h2>🎯 ኢትዮ ቢንጎ መጫወቻ ክፍሎች</h2>
+        
+        <!-- 10 ETB ክፍል -->
+        <div class="room-card">
+            <div class="room-details">
+                <div class="stake-tag">Stake: 10 ETB</div>
+                <div>ተጫዋቾች፦ <span id="players-10">0</span></div>
+                <div>የቀረው ሰዓት፦ <span id="timer-10" class="timer-tag">45s</span></div>
+            </div>
+            <button id="btn-10" class="play-btn" onclick="joinBingoRoom(10)">Play</button>
+        </div>
+
+        <!-- 20 ETB ክፍል -->
+        <div class="room-card">
+            <div class="room-details">
+                <div class="stake-tag">Stake: 20 ETB</div>
+                <div>ተጫዋቾች፦ <span id="players-20">0</span></div>
+                <div>የቀረው ሰዓት፦ <span id="timer-20" class="timer-tag">45s</span></div>
+            </div>
+            <button id="btn-20" class="play-btn" onclick="joinBingoRoom(20)">Play</button>
+        </div>
+
+        <!-- 50 ETB ክፍል -->
+        <div class="room-card">
+            <div class="room-details">
+                <div class="stake-tag">Stake: 50 ETB</div>
+                <div>ተጫዋቾች፦ <span id="players-50">0</span></div>
+                <div>የቀረው ሰዓት፦ <span id="timer-50" class="timer-tag">45s</span></div>
+            </div>
+            <button id="btn-50" class="play-btn" onclick="joinBingoRoom(50)">Play</button>
+        </div>
+    </div>
+
+    <!-- 2. 🎮 የውስጥ ጨዋታ መጫወቻ ሰሌዳ ገጽ -->
+    <div id="game-room" class="game-container">
+        <h3 id="room-title">ክፍል፦ 10 ETB</h3>
+        <div id="game-status-text" style="color:#f1c40f; font-weight:bold;">ሰዎች እየገቡ ነው... የ45 ሰከንድ ቆጠራ ይጠብቁ</div>
+        <h2 id="room-countdown" class="timer-tag" style="font-size:32px;">45s</h2>
+        
+        <div id="active-game-panel" style="display:none;">
+            <div>የሚወጣው ቁጥር፦</div>
+            <div class="current-call" id="call-number">--</div>
+        </div>
+        
+        <div class="bingo-grid" id="bingo-board"></div>
+        <button class="play-btn" style="background-color:#009b4c; width:80%; font-size:22px; margin-top:10px;" onclick="claimBingo()">BINGO!</button>
+        <br><br>
+        <button class="play-btn" style="background-color:#7f8c8d; padding:8px 20px;" onclick="leaveBingoRoom()">ውጣ (Leave)</button>
+    </div>
+
+    <script>
+        const socket = io();
+        let myUserId = "User_" + Math.floor(Math.random() * 10000);
+
+        // 🔄 የሁሉም ክፍሎች ሁኔታ (የሰከንድ ቆጠራ እና የሰው ብዛት) በሪል-ታይም ማዘመኛ
+        socket.on('rooms_update', (roomsStatus) => {
+            for (let id in roomsStatus) {
+                const room = roomsStatus[id];
+                document.getElementById(`players-${id}`).innerText = room.activePlayers;
+                document.getElementById(`timer-${id}`).innerText = room.countdown + "s";
+                
+                const btn = document.getElementById(`btn-${id}`);
+                if (room.status === "Playing") {
+                    btn.innerText = "Closed";
+                    btn.className = "play-btn closed";
+                } else {
+                    btn.innerText = "Play";
+                    btn.className = "play-btn";
+                }
+            }
+        });
+
+        function joinBingoRoom(stake) {
+            document.getElementById('lobby').style.display = 'none';
+            document.getElementById('game-room').style.display = 'block';
+            document.getElementById('room-title').innerText = `ክፍል፦ ${stake} ETB`;
+            
+            generateBingoBoard();
+            
+            socket.emit('join_room', { roomId: stake, userId: myUserId, name: "ተጫዋች" });
+        }
+
+        // ⏱️ የክፍሉ የጋራ የ45 ሰከንድ ቆጠራ ስክሪን ላይ ሲቀንስ
+        socket.on('countdown_update', (seconds) => {
+            document.getElementById('room-countdown').innerText = seconds + "s";
+        });
+
+        // 🚀 የ45 ሰከንድ ቆጠራው አልቆ ጨዋታው ሲጀመር (ክፍሉ ሲዘጋ)
+        socket.on('game_started', (data) => {
+            document.getElementById('game-status-text').innerText = "🔴 ጨዋታው ተጀምሯል! ክፍሉ ተዘግቷል።";
+            document.getElementById('room-countdown').style.display = 'none';
+            document.getElementById('active-game-panel').style.display = 'block';
+        });
+
+        // 🎰 ሰርቨሩ በየ 4 ሰከንዱ አዲስ ቁጥር ሲያወጣ
+        socket.on('next_number', (num) => {
+            document.getElementById('call-number').innerText = num;
+            
+            // የደረሰንን ቁጥር በቦርዳችን ላይ ካለ በራስ-ሰር ምልክት ማድረግያ (ወይም ተጫዋቹ እንዲነካው)
+            const cell = document.getElementById(`cell-${num}`);
+            if (cell) {
+                cell.style.border = "3px solid #f1c40f"; // የወጣ ቁጥር መሆኑን ለማሳየት
+            }
+            speakBingoNumber(num);
+        });
+
+        socket.on('error_message', (msg) => {
+            alert(msg);
+            leaveBingoRoom();
+        });
+
+        function generateBingoBoard() {
+            const grid = document.getElementById('bingo-board');
+            grid.innerHTML = "";
+            const used = new Set();
+            for (let i = 0; i < 25; i++) {
+                let num;
+                do { num = Math.floor(Math.random() * 75) + 1; } while (used.has(num));
+                used.add(num);
+
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.innerText = num;
+                cell.id = `cell-${num}`;
+                cell.onclick = () => cell.classList.toggle('marked');
+                grid.appendChild(cell);
+            }
+        }
+
+        function speakBingoNumber(num) {
+            const speech = new SpeechSynthesisUtterance(`ቁጥር ${num}`);
+            speech.lang = 'am-ET';
+            window.speechSynthesis.speak(speech);
+        }
+
+        function leaveBingoRoom() {
+            location.reload(); // ገጹን ሪፍሬሽ በማድረግ ከክፍሉ ሙሉ በሙሉ እንዲወጣ ማድረግ
+        }
+
+        function claimBingo() {
+            alert("ቢንጎ! ካርድዎ ለሰርቨሩ ተልኳል... እባክዎ ማረጋገጫውን ይጠብቁ።");
+        }
+    </script>
+</body>
+</html>
