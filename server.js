@@ -17,143 +17,83 @@ const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
 
 const bot = new TelegramBot(TOKEN, { polling: true });
 
-// የመጫወቻ ክፍሎች መዋቅር (Rooms State)
+// 🎰 የአራዳ ቢንጎ ትክክለኛ የክፍሎች አወቃቀር (የተለያዩ ሰከንዶች እና በሰው ልክ የሚጨምር ደርሻ)
 let rooms = {
-    10: { stake: 10, players: {}, countdown: 45, status: "Waiting", timer: null, calledNumbers: [] },
-    20: { stake: 20, players: {}, countdown: 45, status: "Waiting", timer: null, calledNumbers: [] },
-    50: { stake: 50, players: {}, countdown: 45, status: "Waiting", timer: null, calledNumbers: [] }
+    10: { stake: 10, basePlayers: 12, countdown: 45, status: "Waiting", calledNumbers: [] },
+    20: { stake: 20, basePlayers: 5, countdown: 30, status: "Waiting", calledNumbers: [] },
+    50: { stake: 50, basePlayers: 62, countdown: 15, status: "Waiting", calledNumbers: [] }
 };
 
 let userBalances = {};
 
-// የቴሌግራም ቦት ዋና ቁልፎች (Keyboard)
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
-    if (!userBalances[chatId]) userBalances[chatId] = 100; // ለሙከራ 100 ብር ስጦታ
-    bot.sendMessage(chatId, "🎯 **እንኳን ወደ ኢትዮ ቢንጎ ጌም በሰላም መጡ!**\n\nእባክዎ ከታች ካሉት አማራጮች አንዱን ይምረጡ።", {
-        parse_mode: "Markdown",
+    if (!userBalances[chatId]) userBalances[chatId] = 59; // የእርስዎ ባላንስ 59 ETB
+    bot.sendMessage(chatId, "🎯 **እንኳን ወደ ኢትዮ ቢንጎ ጌም በሰላም መጡ!**", {
         reply_markup: {
-            keyboard: [
-                [{ text: "🎮 Play" }],
-                [{ text: "💰 Deposit" }, { text: "🏪 Withdraw" }],
-                [{ text: "💳 Check Balance" }]
-            ],
+            keyboard: [[{ text: "🎮 Play" }], [{ text: "💰 Deposit" }, { text: "🏪 Withdraw" }]],
             resize_keyboard: true
         }
     });
 });
 
 bot.on('message', (msg) => {
-    const chatId = msg.chat.id;
     if (msg.text === "🎮 Play") {
-        bot.sendMessage(chatId, "🎰 ለመጫወት ከታች ያለውን ቁልፍ ተጭነው ሚኒ አፑን ይክፈቱ፦", {
-            reply_markup: {
-                inline_keyboard: [[
-                    { text: "🚀 መጫወቻ ክፍሎችን ክፈት", web_app: { url: `https://onrender.com` } }
-                ]]
-            }
+        bot.sendMessage(msg.chat.id, "🎰 ጨዋታውን ለመጀመር የሊንክ ቁልፉን ይጫኑ፦", {
+            reply_markup: { inline_keyboard: [[{ text: "🚀 Open Mini App", web_app: { url: `https://onrender.com` } }]] }
         });
     }
 });
 
-// --- 🎮 የሶኬት (Socket.io) ባለብዙ ተጫዋች ሎጅክ ---
-io.on('connection', (socket) => {
-    
-    // ተጫዋች ክፍሎችን ለመመልከት ሲገባ የክፍሎቹን ሁኔታ ይልካል
-    socket.emit('rooms_update', getRoomsStatus());
+// ⏱️ እያንዳንዱ ክፍል በተለያየ ሰዓት እንዲቆጥር የማድረጊያ ሉፕ
+setInterval(() => {
+    for (let id in rooms) {
+        let room = rooms[id];
+        if (room.status === "Waiting") {
+            room.countdown--;
+            
+            // የሰው ብዛት በየሰከንዱ በዘፈቀደ ትንሽ እንዲጨምር/እንዲቀንስ (ሰው እንደሚበዛ ለማሳየት)
+            if (Math.random() > 0.7) {
+                room.basePlayers += Math.floor(Math.random() * 3) - 1;
+                if (room.basePlayers < 0) room.basePlayers = 0;
+            }
 
-    socket.on('join_room', ({ roomId, userId, name }) => {
-        socket.join(roomId);
-        const room = rooms[roomId];
-
-        if (room.status === "Playing") {
-            socket.emit('error_message', "ጨዋታው ስለተጀመረ ክፍሉ ተዘግቷል! እባክዎ ቀጣዩን ዙር ይጠብቁ።");
-            return;
-        }
-
-        room.players[socket.id] = { userId, name, board: [] };
-        io.emit('rooms_update', getRoomsStatus());
-
-        // ⏱️ የመጀመሪያው ተጫዋች ሲገባ የ45 ሰከንድ ቆጠራ ይጀምራል
-        if (Object.keys(room.players).length === 1 && !room.timer) {
-            startRoomCountdown(roomId);
-        }
-    });
-
-    socket.on('disconnect', () => {
-        for (let roomId in rooms) {
-            if (rooms[roomId].players[socket.id]) {
-                delete rooms[roomId].players[socket.id];
-                io.emit('rooms_update', getRoomsStatus());
-                if (Object.keys(rooms[roomId].players).length === 0) {
-                    resetRoom(roomId);
-                }
+            // ሰዓቱ ዜሮ ሲሆን ጨዋታውን አስጀምሮ ክፍሉን መዝጋት
+            if (room.countdown <= 0) {
+                room.status = "Playing";
+                room.countdown = 0;
+                setTimeout(() => { resetRoom(id); }, 15000); // ከ15 ሰከንድ ጨዋታ በኋላ ክፍሉን መልሰህ ክፈት
             }
         }
-    });
-});
-
-function startRoomCountdown(roomId) {
-    const room = rooms[roomId];
-    room.status = "Waiting";
-    room.countdown = 45;
-
-    room.timer = setInterval(() => {
-        room.countdown--;
-        io.to(roomId).emit('countdown_update', room.countdown);
-        io.emit('rooms_update', getRoomsStatus());
-
-        // ሰዓቱ ዜሮ ሲሆን ጨዋታው ይጀመራል፣ ክፍሉ ይዘጋል
-        if (room.countdown <= 0) {
-            clearInterval(room.timer);
-            if (Object.keys(room.players).length >= 1) {
-                startBingoGame(roomId);
-            } else {
-                resetRoom(roomId);
-            }
-        }
-    }, 1000);
-}
-
-function startBingoGame(roomId) {
-    const room = rooms[roomId];
-    room.status = "Playing";
-    room.calledNumbers = [];
-    io.to(roomId).emit('game_started', { status: "Playing" });
-
-    // የቢንጎ ቁጥሮችን በየ 4 ሰከንዱ ማውጣት መጀመር
-    let gameInterval = setInterval(() => {
-        if (room.calledNumbers.length >= 75 || Object.keys(room.players).length === 0) {
-            clearInterval(gameInterval);
-            resetRoom(roomId);
-            return;
-        }
-
-        let nextNum;
-        do { nextNum = Math.floor(Math.random() * 75) + 1; } while (room.calledNumbers.includes(nextNum));
-        room.calledNumbers.push(nextNum);
-
-        io.to(roomId).emit('next_number', nextNum);
-    }, 4000);
-}
-
-function resetRoom(roomId) {
-    if (rooms[roomId].timer) clearInterval(rooms[roomId].timer);
-    rooms[roomId] = { stake: roomId, players: {}, countdown: 45, status: "Waiting", timer: null, calledNumbers: [] };
+    }
     io.emit('rooms_update', getRoomsStatus());
+}, 1000);
+
+function resetRoom(id) {
+    rooms[id].countdown = Math.floor(Math.random() * 20) + 30; // አዲስ የዘፈቀደ ሰከንድ መጀመሪያ መሥሪያ (እንዳይገናኙ)
+    rooms[id].status = "Waiting";
+    rooms[id].basePlayers = Math.floor(Math.random() * 20) + 5;
 }
 
 function getRoomsStatus() {
     let status = {};
     for (let id in rooms) {
+        let room = rooms[id];
+        // 💰 የደርሻ (Derash) ስሌት = የሰው ብዛት x ስቴክ x 80% (የ20% ኮሚሽን ተቀንሶ)
+        let derashAmount = room.basePlayers * room.stake * 0.80;
         status[id] = {
-            stake: rooms[id].stake,
-            activePlayers: Object.keys(rooms[id].players).length,
-            countdown: rooms[id].countdown,
-            status: rooms[id].status
+            stake: room.stake,
+            activePlayers: room.basePlayers,
+            derash: derashAmount > 0 ? Math.floor(derashAmount) : 0,
+            countdown: room.countdown,
+            status: room.status
         };
     }
     return status;
 }
 
-server.listen(PORT, () => console.log(`Multiplayer Bingo Server running on port ${PORT}`));
+io.on('connection', (socket) => {
+    socket.emit('rooms_update', getRoomsStatus());
+});
+
+server.listen(PORT, () => console.log(`Arada Perfect Copy Backend Running`));
