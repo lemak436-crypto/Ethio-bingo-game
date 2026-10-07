@@ -1,7 +1,7 @@
 {
   "name": "ethio-bingo-bot",
   "version": "1.0.0",
-  "description": "Telegram Bingo Mini App for Ethiopia with CBE and Telebirr Integration",
+  "description": "Telegram Bingo Mini App with 45s Countdown",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,7 +9,7 @@
   "dependencies": {
     "express": "^4.19.2",
     "node-telegram-bot-api": "^0.66.0",
-    "axios": "^1.7.2",
+    "socket.io": "^4.7.5",
     "dotenv": "^16.4.5"
   },
   "engines": {
