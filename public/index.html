@@ -18,7 +18,7 @@
         .lucky-number-container { display: none; }
         .game-container { display: none; }
         
-        /* 🎰 የአራዳ ቢንጎ ትክክለኛ የሎቢ ሰንጠረዥ (Table) ዲዛይን */
+        /* 🎰 የአራዳ ቢንጎ ሰንጠረዥ ዲዛይን */
         .arada-table {
             width: 100%;
             max-width: 450px;
@@ -45,22 +45,24 @@
             cursor: pointer;
         }
 
-        /* 🔢 የ100 ዕድለኛ ቁጥሮች ምርጫ ሰሌዳ (Lucky Number) */
+        /* 🔢 የ200 ዕድለኛ ቁጥሮች መምረጫ ሰሌዳ */
         .lucky-grid {
             display: grid;
             grid-template-columns: repeat(10, 1fr);
             gap: 4px;
-            max-width: 380px;
+            max-width: 390px;
             margin: 15px auto;
             background-color: #1c2541;
             padding: 8px;
             border-radius: 8px;
+            max-height: 280px;
+            overflow-y: auto;
         }
         .lucky-cell {
             background-color: #3a506b;
             color: white;
             padding: 8px 0;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             border-radius: 4px;
             cursor: pointer;
@@ -90,7 +92,7 @@
 </head>
 <body>
 
-    <!-- 1. 🎰 የአራዳ ቢንጎ ሎቢ ገጽ (ሰንጠረዥ) -->
+    <!-- 1. 🎰 ሎቢ ገጽ -->
     <div id="lobby" class="lobby-container">
         <h2 style="color:#f1c40f;">🎰 ኢትዮ ቢንጎ መጫወቻ ክፍሎች</h2>
         <table class="arada-table">
@@ -105,49 +107,46 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- 10 ETB ክፍል -->
                 <tr>
                     <td style="color:#f1c40f; font-weight:bold;">10 ETB</td>
                     <td>Game</td>
                     <td><span id="players-10">0</span></td>
                     <td style="color:#009b4c; font-weight:bold;"><span id="derash-10">0</span> ETB</td>
                     <td><span id="timer-10" style="color:#e74c3c; font-weight:bold;">45s</span></td>
-                    <td><button class="play-btn" onclick="selectRoom(10)">Play</button></td>
+                    <td><button class="play-btn" onclick="openLuckySelection(10)">Play</button></td>
                 </tr>
-                <!-- 20 ETB ክፍል -->
                 <tr>
                     <td style="color:#f1c40f; font-weight:bold;">20 ETB</td>
                     <td>Game</td>
                     <td><span id="players-20">0</span></td>
                     <td style="color:#009b4c; font-weight:bold;"><span id="derash-20">0</span> ETB</td>
                     <td><span id="timer-20" style="color:#e74c3c; font-weight:bold;">30s</span></td>
-                    <td><button class="play-btn" onclick="selectRoom(20)">Play</button></td>
+                    <td><button class="play-btn" onclick="openLuckySelection(20)">Play</button></td>
                 </tr>
-                <!-- 50 ETB ክፍል -->
                 <tr>
                     <td style="color:#f1c40f; font-weight:bold;">50 ETB</td>
                     <td>Game</td>
                     <td><span id="players-50">0</span></td>
                     <td style="color:#009b4c; font-weight:bold;"><span id="derash-50">0</span> ETB</td>
                     <td><span id="timer-50" style="color:#e74c3c; font-weight:bold;">15s</span></td>
-                    <td><button class="play-btn" onclick="selectRoom(50)">Play</button></td>
+                    <td><button class="play-btn" onclick="openLuckySelection(50)">Play</button></td>
                 </tr>
             </tbody>
         </table>
     </div>
 
-    <!-- 2. 🔢 የ100 ዕድለኛ ቁጥሮች መምረጫ ገጽ (Lucky Number) -->
+    <!-- 2. 🔢 ባለ 200 ዕድለኛ ቁጥሮች መምረጫ ገጽ (Lucky Number) -->
     <div id="lucky-selection" class="lucky-number-container">
-        <h2>🔢 እባክዎ አንድ ዕድለኛ ቁጥር ይምረጡ</h2>
+        <h2>🔢 እባክዎ አንድ ዕድለኛ ቁጥር ይምረጡ (1 - 200)</h2>
         <div class="lucky-grid" id="lucky-numbers-list"></div>
         <button class="play-btn" style="background-color:#7f8c8d; margin-right:10px;" onclick="location.reload()">ውጣ</button>
-        <button class="play-btn" id="start-game-btn" disabled style="background-color:#7f8c8d;" onclick="confirmLuckyNumber()">Continue</button>
+        <button class="play-btn" id="start-game-btn" disabled style="background-color:#7f8c8d;" onclick="confirmLuckyNumberAndGetCard()">Continue</button>
     </div>
 
     <!-- 3. 🎮 የቢንጎ መጫወቻ ገጽ -->
     <div id="game-room" class="game-container">
         <h3 id="room-title">ክፍል፦ 10 ETB</h3>
-        <div id="lucky-number-display" style="font-size:18px; color:#f1c40f; margin-bottom:5px;">የተመረጠው ቁጥር፦ --</div>
+        <div id="lucky-number-display" style="font-size:18px; color:#f1c40f; margin-bottom:5px;">Bingo Card #--</div>
         <div id="game-status-text" style="color:#f1c40f; font-weight:bold;">የሰከንድ ቆጠራ ይጠብቁ...</div>
         
         <div id="active-game-panel" style="display:none;">
@@ -162,7 +161,7 @@
         <button class="play-btn" style="background-color:#009b4c; width:85%; font-size:22px; margin-top:10px;" onclick="alert('BINGO!')">BINGO!</button>
     </div>
 
-    <script>
+    <script {
         const socket = io();
         let selectedStake = 0;
         let selectedLuckyNumber = null;
@@ -176,15 +175,15 @@
             }
         });
 
-        function selectRoom(stake) {
+        // ፕሌይ ሲባል የ200 ቁጥር ምርጫን መክፈቻ
+        function openLuckySelection(stake) {
             selectedStake = stake;
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('lucky-selection').style.display = 'block';
             
-            // የ100 ቁጥሮች ዝርዝር መሥሪያ
             const list = document.getElementById('lucky-numbers-list');
             list.innerHTML = "";
-            for (let i = 1; i <= 100; i++) {
+            for (let i = 1; i <= 200; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'lucky-cell';
                 cell.innerText = i;
@@ -199,11 +198,12 @@
             }
         }
 
-        function confirmLuckyNumber() {
+        // ቁጥሩ ሲረጋገጥ ወደ ቢንጎ ቦርድ መቀየሪያ ሎጅክ
+        function confirmLuckyNumberAndGetCard() {
             document.getElementById('lucky-selection').style.display = 'none';
             document.getElementById('game-room').style.display = 'block';
             document.getElementById('room-title').innerText = `ክፍል፦ ${selectedStake} ETB`;
-            document.getElementById('lucky-number-display').innerText = `ዕድለኛ ቁጥርዎ፦ #${selectedLuckyNumber} (Board #${selectedLuckyNumber})`;
+            document.getElementById('lucky-number-display').innerText = `Bingo Card #\${selectedLuckyNumber}`;
             
             generateBingoCard();
         }
