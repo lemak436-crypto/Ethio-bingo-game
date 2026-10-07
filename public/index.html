@@ -59,14 +59,13 @@
             cursor: not-allowed;
         }
 
-        /* 📋 የቦርድ መምረጫ ገጽ (1-200) */
         .board-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 10px;
             max-width: 380px;
             margin: 15px auto;
-            max-height: 300px;
+            max-height: 250px;
             overflow-y: auto;
             background-color: #1c2541;
             padding: 10px;
@@ -83,31 +82,31 @@
         }
         .board-select-btn.selected { background-color: #f1c40f; color: #000000; }
 
-        /* 🎫 የትክክለኛው የቢንጎ ካርድ ዲዛይን */
+        /* 🎫 የሁለተኛው ፎቶ ሰማያዊና ነጭ ትክክለኛ የቢንጎ ካርድ ዲዛይን (Calculator Soup ኮፒ) */
         .bingo-card-box {
             background-color: #ffffff;
             color: #000000;
             max-width: 340px;
             margin: 15px auto;
-            border-radius: 10px;
+            border: 4px solid #0000ff;
+            border-radius: 5px;
             overflow: hidden;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.5);
         }
         .bingo-header-title {
             background-color: #0000ff;
             color: #ffffff;
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            font-size: 28px;
+            font-size: 36px;
             font-weight: bold;
             padding: 5px 0;
+            border-bottom: 3px solid #0000ff;
         }
         .bingo-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             gap: 2px;
-            background-color: #000000;
-            padding: 2px;
+            background-color: #0000ff; /* የሳጥኖቹ መስመር ሰማያዊ እንዲሆን */
         }
         .cell {
             background-color: #ffffff;
@@ -115,14 +114,22 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 22px;
             font-weight: bold;
+            color: #000000;
             cursor: pointer;
         }
-        .cell.marked { background-color: #de1c24; color: #ffffff; }
-        .cell.free-space { color: #de1c24; font-size: 11px; flex-direction: column; }
-        .cell.free-space.marked { background-color: #de1c24; color: #ffffff; }
-        
+        /* ተጫዋቹ የወጣውን ቁጥር ሲነካው የሚሆነው ቀይ ምልክት */
+        .cell.marked {
+            background-color: #de1c24 !important;
+            color: #ffffff !important;
+        }
+        .cell.free-space {
+            color: #de1c24;
+            font-size: 11px;
+            flex-direction: column;
+            font-weight: bold;
+        }
         .current-call {
             font-size: 55px;
             color: #f1c40f;
@@ -137,7 +144,7 @@
 </head>
 <body>
 
-    <!-- 1. 🎰 ሎቢ ገጽ (ከባላንስ መቆጣጠሪያ ጋር) -->
+    <!-- 1. 🎰 ሎቢ ገጽ -->
     <div id="lobby" class="lobby-container">
         <div class="header-panel">
             <span>🎫 የእኔ ሂሳብ፦ <strong id="user-balance-display" style="color:#009b4c;">59 ETB</strong></span>
@@ -174,7 +181,7 @@
         </div>
     </div>
 
-    <!-- 2. 📋 ባለ 200 የቦርድ ቁጥር መምረጫ ገጽ -->
+    <!-- 2. 📋 ቦርድ መምረጫ ገጽ -->
     <div id="board-selection" class="board-selection-container">
         <h2>📋 መጫወቻ ቦርድ ይምረጡ (1 - 200)</h2>
         <div class="board-grid" id="boards-list"></div>
@@ -185,7 +192,7 @@
     <!-- 3. 🎮 የጨዋታ ገጽ -->
     <div id="game-room" class="game-container">
         <h3 id="room-title">ክፍል፦ 10 ETB</h3>
-        <div id="board-number-display" style="font-size:18px; color:#f1c40f; margin-bottom:5px;">Board #--</div>
+        <div id="board-number-display" style="font-size:18px; color:#f1c40f; margin-bottom:5px;">Bingo Card #1</div>
         <div id="game-status-text" style="color:#f1c40f; font-weight:bold;">የሰከንድ ቆጠራ ይጠብቁ...</div>
         <h2 id="room-countdown" class="timer-tag" style="font-size:32px;">45s</h2>
         
@@ -194,6 +201,7 @@
             <div class="current-call" id="call-number">--</div>
         </div>
         
+        <!-- 🎫 ሰማያዊና ነጭ ትክክለኛው የቢንጎ ካርድ -->
         <div class="bingo-card-box">
             <div class="bingo-header-title">
                 <div>B</div><div>I</div><div>N</div><div>G</div><div>O</div>
@@ -206,12 +214,11 @@
 
     <script>
         const socket = io();
-        let myBalance = 59; // የአሁኑ የተጫዋቹ የሙከራ ባላንስ
+        let myBalance = 59; 
         let selectedRoomStake = 0;
         let selectedBoardNumber = null;
         let myUserId = "User_" + Math.floor(Math.random() * 10000);
 
-        // 🔄 ሎቢውን መቆጣጠሪያ እና የሎው ባላንስ ቁልፎችን አክቲቭ ማድረጊያ
         function updateLobbyUI() {
             document.getElementById('user-balance-display').innerText = myBalance + " ETB";
             [10, 20, 50].forEach(stake => {
@@ -219,9 +226,6 @@
                 if (myBalance < stake) {
                     btn.innerText = "Low Balance";
                     btn.className = "play-btn low-balance";
-                } else {
-                    btn.innerText = "Play";
-                    btn.className = "play-btn";
                 }
             });
         }
@@ -236,12 +240,11 @@
         });
 
         function checkBalanceAndProceed(stake) {
-            if (myBalance < stake) return; // ሎው ባላንስ ከሆነ አይከፍትም
+            if (myBalance < stake) return;
             selectedRoomStake = stake;
             showBoardSelection();
         }
 
-        // 📋 ባለ 200 የቦርድ ቁጥር ዝርዝር ማሳያ ሎጅክ
         function showBoardSelection() {
             document.getElementById('lobby').style.display = 'none';
             document.getElementById('board-selection').style.display = 'block';
@@ -266,3 +269,4 @@
         }
 
         function confirmBoardAndJoin() {
+            document.getElementById('board-selection').style.display = 'none';
