@@ -18,21 +18,28 @@
         .play-btn { background-color: #009b4c; color: white; border: none; padding: 6px 15px; font-weight: bold; border-radius: 5px; cursor: pointer; }
         .play-btn:disabled { background-color: #7f8c8d; cursor: not-allowed; }
 
-        .lucky-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; max-width: 390px; margin: 15px auto; background-color: #1c2541; padding: 8px; border-radius: 8px; max-height: 280px; overflow-y: auto; }
+        .lucky-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; max-width: 390px; margin: 15px auto; background-color: #1c2541; padding: 8px; border-radius: 8px; max-height: 240px; overflow-y: auto; }
         .lucky-cell { background-color: #3a506b; color: white; padding: 8px 0; font-size: 13px; font-weight: bold; border-radius: 4px; cursor: pointer; border: 1px solid #1c2541; }
         .lucky-cell.selected { background-color: #009b4c; }
 
-        .bingo-card-box { background-color: #ffffff; color: #000000; max-width: 340px; margin: 15px auto; border: 4px solid #0000ff; }
-        .bingo-header-title { background-color: #0000ff; color: #ffffff; display: grid; grid-template-columns: repeat(5, 1fr); font-size: 34px; font-weight: bold; padding: 5px 0; }
+        /* 🎫 ሰማያዊና ነጭ የቢንጎ ካርድ ዲዛይን */
+        .bingo-card-box { background-color: #ffffff; color: #000000; max-width: 340px; margin: 10px auto; border: 4px solid #0000ff; border-radius: 4px; }
+        .bingo-header-title { background-color: #0000ff; color: #ffffff; display: grid; grid-template-columns: repeat(5, 1fr); font-size: 34px; font-weight: bold; padding: 3px 0; }
         .bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background-color: #0000ff; }
         .cell { background-color: #ffffff; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: bold; color: #000000; cursor: pointer; }
+        .cell.called-active { border: 3px solid #f1c40f; background-color: #e8f4f8; }
         .cell.marked { background-color: #de1c24 !important; color: #ffffff !important; }
         .cell.free-space { color: #de1c24; font-size: 11px; flex-direction: column; font-weight: bold; }
-        .current-call { font-size: 55px; color: #f1c40f; font-weight: bold; margin: 10px 0; background-color: #1c2541; display: inline-block; padding: 5px 30px; border-radius: 50px; }
+
+        /* 📣 የአራዳ ቢንጎ ትክክለኛ የቁጥር ጥሪ ሳጥን ዲዛይን */
+        .call-display-box { background-color: #1c2541; border-radius: 10px; max-width: 340px; margin: 10px auto; padding: 10px; border: 2px solid #3a506b; display: flex; align-items: center; justify-content: space-around; }
+        .current-call { font-size: 48px; color: #f1c40f; font-weight: bold; background-color: #0b132b; width: 140px; height: 70px; line-height: 70px; border-radius: 10px; border: 2px solid #f1c40f; }
+        .amharic-text-display { font-size: 18px; color: #ffffff; font-weight: bold; background-color: #de1c24; padding: 8px 15px; border-radius: 5px; min-width: 140px; }
     </style>
 </head>
 <body>
 
+    <!-- 1. 🎰 ሎቢ ገጽ -->
     <div id="lobby" class="lobby-container">
         <h2 style="color:#f1c40f;">🎰 ኢትዮ ቢንጎ መጫወቻ ክፍሎች</h2>
         <table class="arada-table">
@@ -53,6 +60,7 @@
         </table>
     </div>
 
+    <!-- 2. 🔢 ባለ 200 ዕድለኛ ቁጥሮች መምረጫ ገጽ -->
     <div id="lucky-selection" class="lucky-number-container">
         <h2>🔢 እባክዎ አንድ ዕድለኛ ቁጥር ይምረጡ (1 - 200)</h2>
         <div class="lucky-grid" id="lucky-numbers-list"></div>
@@ -60,25 +68,32 @@
         <button class="play-btn" id="start-game-btn" disabled onclick="confirmLuckyNumberAndGetCard()">Start Game</button>
     </div>
 
+    <!-- 3. 🎮 የቢንጎ መጫወቻ ገጽ -->
     <div id="game-room" class="game-container">
-        <h3 id="room-title">ክፍል፦ 10 ETB</h3>
-        <div id="lucky-number-display" style="font-size:18px; color:#f1c40f; margin-bottom:5px;">Bingo Card #--</div>
-        <div id="game-status-text" style="color:#f1c40f; font-weight:bold;">የሰከንድ ቆጠራ ይጠብቁ...</div>
-        <div id="active-game-panel" style="display:none;">
-            <div>የሚወጣው ቁጥር፦</div>
-            <div class="current-call" id="call-number">--</div>
+        <div style="display:flex; justify-content:space-between; max-width:340px; margin: 0 auto; font-size:14px; font-weight:bold; color:#f1c40f;">
+            <span id="room-title">ክፍል፦ 10 ETB</span>
+            <span id="lucky-number-display">Board No. --</span>
         </div>
+        
+        <div id="game-status-text" style="color:#f1c40f; font-weight:bold; margin: 5px 0;">የሰከንድ ቆጠራ ይጠብቁ...</div>
+        <h2 id="room-countdown" style="color:#e74c3c; font-size:28px; margin: 5px 0;">45s</h2>
+        
+        <!-- 📣 የአራዳ ቢንጎ ትክክለኛ የፊደልና ቁጥር ጥሪ ማሳያ ሳጥን -->
+        <div id="active-game-panel" class="call-display-box" style="display:none;">
+            <div class="current-call" id="call-number">--</div>
+            <div class="amharic-text-display" id="amharic-text">ጥሪ ይጠብቁ</div>
+        </div>
+        
         <div class="bingo-card-box">
             <div class="bingo-header-title"><div>B</div><div>I</div><div>N</div><div>G</div><div>O</div></div>
             <div class="bingo-grid" id="bingo-board"></div>
         </div>
-        <button class="play-btn" style="background-color:#009b4c; width:85%; font-size:22px; margin-top:10px;" onclick="alert('BINGO!')">BINGO!</button>
+        <button class="play-btn" style="background-color:#009b4c; width:85%; font-size:22px; margin-top:5px;" onclick="alert('BINGO!')">BINGO!</button>
     </div>
 
     <script>
         const socket = io();
-        let selectedStake = 0;
-        let selectedLuckyNumber = null;
+        let selectedStake = 0, selectedLuckyNumber = null;
 
         socket.on('rooms_update', (status) => {
             for (let id in status) {
@@ -97,8 +112,7 @@
             list.innerHTML = "";
             for (let i = 1; i <= 200; i++) {
                 const cell = document.createElement('div');
-                cell.className = 'lucky-cell';
-                cell.innerText = i;
+                cell.className = 'lucky-cell'; cell.innerText = i;
                 cell.onclick = function() {
                     selectedLuckyNumber = i;
                     document.querySelectorAll('.lucky-cell').forEach(c => c.classList.remove('selected'));
@@ -115,41 +129,26 @@
             document.getElementById('lucky-selection').style.display = 'none';
             document.getElementById('game-room').style.display = 'block';
             document.getElementById('room-title').innerText = `ክፍል፦ ${selectedStake} ETB`;
-            document.getElementById('lucky-number-display').innerText = `Bingo Card #${selectedLuckyNumber}`;
-            generateBingoCard();
+            document.getElementById('lucky-number-display').innerText = `Board No. ${selectedLuckyNumber}`;
+            generateFixedBingoCard(selectedLuckyNumber);
         }
 
-        function generateBingoCard() {
-            const grid = document.getElementById('bingo-board');
-            grid.innerHTML = "";
-            const ranges = [{ min: 1, max: 15 }, { min: 16, max: 30 }, { min: 31, max: 45 }, { min: 46, max: 60 }, { min: 61, max: 75 }];
-            let columns = [[], [], [], [], []];
-            for (let col = 0; col < 5; col++) {
-                let used = new Set();
-                while (columns[col].length < 5) {
-                    let num = Math.floor(Math.random() * (ranges[col].max - ranges[col].min + 1)) + ranges[col].min;
-                    if (!used.has(num)) { used.add(num); columns[col].push(num); }
-                }
-                columns[col].sort((a, b) => a - b);
-            }
-            for (let row = 0; row < 5; row++) {
-                for (let col = 0; col < 5; col++) {
-                    const cell = document.createElement('div');
-                    if (row === 2 && col === 2) {
-                        cell.className = 'cell free-space marked';
-                        cell.innerHTML = "FREE<br>★";
-                    } else {
-                        let num = columns[col][row];
-                        cell.className = 'cell';
-                        cell.innerText = num;
-                        cell.id = `cell-${num}`;
-                        cell.onclick = function() { cell.classList.toggle('marked'); };
-                    }
-                    grid.appendChild(cell);
-                }
-            }
-        }
-    </script>
-</body>
-</html>
+        socket.on('countdown_update', (seconds) => {
+            document.getElementById('room-countdown').innerText = seconds + "s";
+        });
 
+        socket.on('game_started', () => {
+            document.getElementById('game-status-text').innerText = "🔴 ጨዋታው ተጀምሯል!";
+            document.getElementById('room-countdown').style.display = 'none';
+            document.getElementById('active-game-panel').style.display = 'flex';
+        });
+
+        // 🎰 የአራዳ ቢንጎ ትክክለኛ የፊደል ጥምረት እና የአማርኛ ጽሑፍ ሎጅክ
+        socket.on('next_number', (num) => {
+            let letter = "";
+            let amharicLetter = "";
+            let amharicNum = ["ዜሮ","አንድ","ሁለት","ሦስት","አራት","አምስት","ስድስት","ሰባት","ስምንት","ዘጠኝ","አሥር","አሥራ አንድ","አሥራ ሁለት","አሥራ ሦስት","አሥራ አራት","አሥራ አምስት","አሥራ ስድስት","አሥራ ሰባት","አሥራ ስምንት","አሥራ ዘጠኝ","ሀያ","ሀያ አንድ","ሀያ ሁለት","ሀያ ሦስት","ሀያ አራት","ሀያ አምስት","ሀያ ስድስት","ሀያ ሰባት","ሀያ ስምንት","ሀያ ዘጠኝ","ሠላሳ","ሠላሳ አንድ","..."]; 
+            
+            // ፊደላትን በቁጥር ክልል መለያ
+            if (num >= 1 && num <= 15) { letter = "B"; amharicLetter = "በቢ በኩል"; }
+            else if (num >= 16 && num <= 30) { letter = "I"; amharicLetter = "በአይ በኩል"; }
